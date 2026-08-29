@@ -2,7 +2,6 @@ import './style.css';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createTerrain, createGrass, createFlowerField } from './world.js';
@@ -14,6 +13,7 @@ const weatherEl = document.querySelector('#weather');
 const speedEl = document.querySelector('#speed');
 const flowersEl = document.querySelector('#flowers');
 const introEl = document.querySelector('#intro');
+const vignetteEl = document.querySelector('.vignette');
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.35));
@@ -56,13 +56,6 @@ flowerField.spawnPatch(2.5, -1.8, 7);
 flowerField.spawnPatch(-2.8, 1.6, 6);
 
 const renderPass = new RenderPass(scene, camera);
-const bokehPass = new BokehPass(scene, camera, {
-  focus: 6.0,
-  aperture: 0.000015,
-  maxblur: 0.0,
-  width: window.innerWidth,
-  height: window.innerHeight,
-});
 
 const cinematicPass = new ShaderPass({
   uniforms: {
@@ -96,12 +89,50 @@ const cinematicPass = new ShaderPass({
     }
   `,
 });
+const dofPass = new ShaderPass({
+  uniforms: {
+    tDiffuse: { value: null },
+    uAmount: { value: 0.0 },
+    uFocus: { value: new THREE.Vector2(0.5, 0.54) },
+    uAspect: { value: window.innerWidth / window.innerHeight },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uAmount;
+    uniform float uAspect;
+    uniform vec2 uFocus;
+    varying vec2 vUv;
+    void main() {
+      vec2 d = vUv - uFocus;
+      d.x *= uAspect;
+      float coc = smoothstep(0.12, 0.62, length(d)) * uAmount;
+      vec2 px = vec2(0.0016, 0.0016 * uAspect) * coc;
+      vec3 c = texture2D(tDiffuse, vUv).rgb * 0.22;
+      c += texture2D(tDiffuse, vUv + vec2(px.x, 0.0)).rgb * 0.13;
+      c += texture2D(tDiffuse, vUv - vec2(px.x, 0.0)).rgb * 0.13;
+      c += texture2D(tDiffuse, vUv + vec2(0.0, px.y)).rgb * 0.13;
+      c += texture2D(tDiffuse, vUv - vec2(0.0, px.y)).rgb * 0.13;
+      c += texture2D(tDiffuse, vUv + px).rgb * 0.065;
+      c += texture2D(tDiffuse, vUv - px).rgb * 0.065;
+      c += texture2D(tDiffuse, vUv + vec2(px.x, -px.y)).rgb * 0.065;
+      c += texture2D(tDiffuse, vUv + vec2(-px.x, px.y)).rgb * 0.065;
+      gl_FragColor = vec4(c, 1.0);
+    }
+  `,
+});
 const outputPass = new OutputPass();
 
 const composer = new EffectComposer(renderer);
 composer.addPass(renderPass);
-composer.addPass(bokehPass);
 composer.addPass(cinematicPass);
+composer.addPass(dofPass);
 composer.addPass(outputPass);
 
 const input = {
@@ -247,11 +278,8 @@ function updateCamera(dt) {
     camera.updateProjectionMatrix();
   }
 
-  if (bokehPass.uniforms) {
-    bokehPass.uniforms.focus.value = camera.position.distanceTo(player.position) * 0.98;
-    bokehPass.uniforms.maxblur.value = 0.0001 + idleBlend * 0.013;
-    bokehPass.uniforms.aperture.value = 0.000012 + idleBlend * 0.000105;
-  }
+  dofPass.uniforms.uAmount.value = idleBlend * 1.35;
+  vignetteEl?.classList.toggle('dof-active', idleBlend > 0.55);
 }
 
 const clock = new THREE.Clock();
@@ -291,7 +319,7 @@ function animate() {
     flowersEl.textContent = String(flowerField.count);
   }
 
-  composer.render();
+  renderer.render(scene, camera);
 }
 
 window.addEventListener('resize', () => {
@@ -301,6 +329,7 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
   composer.setSize(width, height);
+  dofPass.uniforms.uAspect.value = width / height;
 });
 
 animate();

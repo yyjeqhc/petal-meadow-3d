@@ -74,7 +74,9 @@ h1 { margin: 5px 0 0; font-family: "Songti SC", "STSong", "SimSun", Georgia, ser
   position: fixed; inset: 0; z-index: 6; pointer-events: none;
   background: radial-gradient(circle at 50% 44%, transparent 48%, rgba(16,31,25,.08) 72%, rgba(7,18,13,.28) 115%);
   mix-blend-mode: multiply;
+  transition: backdrop-filter .9s ease;
 }
+.vignette.dof-active { backdrop-filter: blur(2.2px); }
 .cinema { position: fixed; z-index: 7; left: 0; right: 0; height: 1.6vh; background: rgba(8, 15, 12, .44); pointer-events: none; }
 .cinema-top { top: 0; }
 .cinema-bottom { bottom: 0; }
