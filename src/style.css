@@ -1,0 +1,88 @@
+:root {
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: rgba(247, 250, 241, 0.94);
+  background: #8fb8ad;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { user-select: none; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.hud {
+  position: fixed;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  padding: 26px 34px;
+  text-shadow: 0 2px 16px rgba(19, 36, 30, 0.3);
+}
+
+.hud-top { top: 0; align-items: flex-start; }
+.hud-bottom { bottom: 0; align-items: flex-end; }
+.eyebrow { font-size: 10px; letter-spacing: .26em; opacity: .7; font-weight: 600; }
+h1 { margin: 5px 0 0; font-family: "Songti SC", "STSong", "SimSun", Georgia, serif; font-size: clamp(24px, 2.6vw, 40px); font-weight: 400; letter-spacing: .08em; }
+.weather-card {
+  min-width: 104px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 16px;
+  background: rgba(24, 47, 41, .14);
+  backdrop-filter: blur(12px);
+}
+.weather-card span, .telemetry span { display: block; font-size: 10px; opacity: .65; letter-spacing: .12em; }
+.weather-card strong { display: block; margin-top: 3px; font-size: 15px; font-weight: 500; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 15px; max-width: 620px; font-size: 11px; opacity: .74; }
+.controls b { font-weight: 600; color: white; }
+.telemetry { display: flex; gap: 8px; }
+.telemetry > div {
+  min-width: 70px;
+  padding: 8px 11px;
+  border-radius: 13px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(24,47,41,.12);
+  backdrop-filter: blur(10px);
+}
+.telemetry strong { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.intro {
+  position: fixed;
+  z-index: 9;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  padding: 28px 34px;
+  border-radius: 24px;
+  background: rgba(43, 68, 58, .10);
+  border: 1px solid rgba(255,255,255,.13);
+  backdrop-filter: blur(12px);
+  transition: opacity 1s ease, transform 1s ease;
+  pointer-events: none;
+}
+.intro.hidden { opacity: 0; transform: translate(-50%, -45%) scale(.96); }
+.intro-mark { font-size: 21px; opacity: .8; }
+.intro p { margin: 10px 0 7px; font-family: "Songti SC", "STSong", "SimSun", Georgia, serif; letter-spacing: .08em; font-size: 14px; }
+.intro small { font-size: 10px; opacity: .62; letter-spacing: .1em; }
+
+.vignette {
+  position: fixed; inset: 0; z-index: 6; pointer-events: none;
+  background: radial-gradient(circle at 50% 44%, transparent 48%, rgba(16,31,25,.08) 72%, rgba(7,18,13,.28) 115%);
+  mix-blend-mode: multiply;
+}
+.cinema { position: fixed; z-index: 7; left: 0; right: 0; height: 1.6vh; background: rgba(8, 15, 12, .44); pointer-events: none; }
+.cinema-top { top: 0; }
+.cinema-bottom { bottom: 0; }
+
+@media (max-width: 720px) {
+  .hud { padding: 20px; }
+  .hud-bottom { gap: 16px; }
+  .controls { max-width: 65vw; gap: 5px 10px; }
+  .weather-card { min-width: 90px; }
+  .telemetry > div { min-width: 58px; }
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#9ecdc3" />
+    <title>Petal Meadow</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="cinema cinema-top"></div>
+    <div class="cinema cinema-bottom"></div>
+    <div class="vignette"></div>
+
+    <header class="hud hud-top">
+      <div>
+        <div class="eyebrow">PETAL MEADOW / 花野</div>
+        <h1>随风而行</h1>
+      </div>
+      <div class="weather-card">
+        <span>天气</span>
+        <strong id="weather">晴岚</strong>
+      </div>
+    </header>
+
+    <aside class="hud hud-bottom">
+      <div class="controls">
+        <span><b>WASD / ↑↓←→</b> 飘行</span>
+        <span><b>Shift</b> 顺风加速</span>
+        <span><b>T</b> 切换天气</span>
+        <span><b>停驻</b> 拉近镜头 · 景深</span>
+      </div>
+      <div class="telemetry">
+        <div><span>速度</span><strong id="speed">0.0</strong></div>
+        <div><span>花朵</span><strong id="flowers">0</strong></div>
+      </div>
+    </aside>
+
+    <div id="intro" class="intro">
+      <div class="intro-mark">✦</div>
+      <p>让花瓣掠过草海，所经之处会留下新的花。</p>
+      <small>按任意方向键开始</small>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
