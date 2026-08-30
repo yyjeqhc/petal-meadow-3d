@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#b9d9d0" />
+    <meta name="description" content="在风、花与云影之间漫游的电影化网页 3D 体验。" />
+    <title>风之花境 · Windborne Bloom</title>
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="scene" aria-label="风之花境 3D 游戏画面"></canvas>
+
+      <section id="intro" class="intro">
+        <div class="intro__veil"></div>
+        <div class="intro__content">
+          <p class="eyebrow">AN INTERACTIVE POEM</p>
+          <h1>风之花境</h1>
+          <p class="subtitle">让风带着花瓣，唤醒沉睡的山野</p>
+          <button id="startButton" class="start-button">
+            <span>随风启程</span>
+            <i aria-hidden="true">→</i>
+          </button>
+          <p class="intro__hint">建议佩戴耳机 · 全屏体验更佳</p>
+        </div>
+      </section>
+
+      <header class="topbar hud">
+        <a class="brand" href="#" aria-label="风之花境">
+          <span class="brand__mark">✦</span>
+          <span>风之花境</span>
+        </a>
+        <div class="topbar__actions">
+          <button id="weatherButton" class="icon-button weather-button" aria-label="切换天气">
+            <span id="weatherIcon">☀</span>
+            <span id="weatherText">晴风</span>
+          </button>
+          <button id="soundButton" class="icon-button icon-button--square" aria-label="切换声音">
+            <span id="soundIcon">♪</span>
+          </button>
+          <button id="fullscreenButton" class="icon-button icon-button--square" aria-label="全屏">
+            <span>⛶</span>
+          </button>
+        </div>
+      </header>
+
+      <aside class="weather-card hud">
+        <span class="weather-card__line"></span>
+        <div>
+          <p id="weatherName">晴风</p>
+          <span id="weatherDescription">云影正掠过山丘</span>
+        </div>
+      </aside>
+
+      <section class="journey hud">
+        <div class="journey__meta">
+          <span>花野苏醒</span>
+          <strong id="bloomCount">000</strong>
+        </div>
+        <div class="journey__track">
+          <span id="journeyProgress"></span>
+          <i id="journeyPetal">◆</i>
+        </div>
+      </section>
+
+      <div id="guide" class="guide hud">
+        <div class="guide__gesture" aria-hidden="true">
+          <span></span><i></i>
+        </div>
+        <p><strong>按住并引导</strong><span>让花瓣随你的方向飞行</span></p>
+      </div>
+
+      <div id="idleHint" class="idle-hint">
+        <span></span>
+        <p>风停了，世界在靠近</p>
+      </div>
+
+      <div class="letterbox letterbox--top"></div>
+      <div class="letterbox letterbox--bottom"></div>
+      <div class="vignette"></div>
+      <div id="flash" class="flash"></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

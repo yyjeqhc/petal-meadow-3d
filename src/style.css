@@ -1,0 +1,602 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&family=Manrope:wght@400;500;600&display=swap");
+
+:root {
+  color-scheme: dark;
+  font-family: "Manrope", "Noto Serif SC", sans-serif;
+  --ivory: #f5f2e8;
+  --soft: rgba(245, 242, 232, 0.64);
+  --line: rgba(255, 255, 255, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #9abbb0;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+button,
+a {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+}
+
+#scene.is-grabbing {
+  cursor: grabbing;
+}
+
+.intro {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  transition: opacity 1.2s ease, visibility 1.2s ease;
+}
+
+.intro.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.intro__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 252, 226, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(22, 47, 45, 0.08), rgba(9, 30, 27, 0.34));
+  backdrop-filter: blur(3px);
+}
+
+.intro__content {
+  position: relative;
+  width: min(92vw, 760px);
+  padding: 40px;
+  animation: intro-rise 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.eyebrow {
+  margin: 0 0 24px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+}
+
+h1 {
+  margin: 0;
+  color: var(--ivory);
+  font-family: "Noto Serif SC", serif;
+  font-size: clamp(58px, 9vw, 110px);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+  text-shadow: 0 8px 42px rgba(28, 51, 43, 0.2);
+}
+
+.subtitle {
+  margin: 24px 0 42px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: "Noto Serif SC", serif;
+  font-size: clamp(14px, 1.5vw, 18px);
+  letter-spacing: 0.26em;
+}
+
+.start-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 46px;
+  min-width: 204px;
+  padding: 15px 18px 15px 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  background: rgba(251, 249, 238, 0.1);
+  backdrop-filter: blur(12px);
+  color: white;
+  font-family: "Noto Serif SC", serif;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition: background 0.4s ease, transform 0.4s ease, border-color 0.4s ease;
+}
+
+.start-button::before {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15);
+  content: "";
+  transform: translateX(-102%);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.start-button span,
+.start-button i {
+  position: relative;
+}
+
+.start-button i {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: white;
+  color: #527269;
+  font-style: normal;
+  transition: transform 0.4s ease;
+}
+
+.start-button:hover {
+  border-color: rgba(255, 255, 255, 0.68);
+  transform: translateY(-2px);
+}
+
+.start-button:hover::before {
+  transform: translateX(0);
+}
+
+.start-button:hover i {
+  transform: rotate(-20deg);
+}
+
+.intro__hint {
+  margin-top: 24px;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+}
+
+.hud {
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease 0.6s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s;
+}
+
+body.is-playing .hud {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.topbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30px 38px;
+  transform: translateY(-12px);
+}
+
+body.is-playing .topbar {
+  transform: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: "Noto Serif SC", serif;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-decoration: none;
+  text-shadow: 0 2px 14px rgba(22, 47, 42, 0.35);
+}
+
+.brand__mark {
+  font-size: 15px;
+}
+
+.topbar__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-button {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(20, 53, 45, 0.11);
+  backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.icon-button:hover {
+  border-color: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.icon-button--square {
+  width: 36px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 15px;
+}
+
+.weather-card {
+  position: fixed;
+  top: 50%;
+  left: 38px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transform: translate(-12px, -50%);
+}
+
+body.is-playing .weather-card {
+  transform: translate(0, -50%);
+}
+
+.weather-card__line {
+  display: block;
+  width: 1px;
+  height: 42px;
+  background: linear-gradient(transparent, rgba(255, 255, 255, 0.72), transparent);
+}
+
+.weather-card p,
+.weather-card span {
+  margin: 0;
+  text-shadow: 0 2px 14px rgba(22, 47, 42, 0.45);
+}
+
+.weather-card p {
+  font-family: "Noto Serif SC", serif;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+
+.weather-card div > span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.journey {
+  position: fixed;
+  right: 38px;
+  bottom: 32px;
+  width: min(260px, 36vw);
+  transform: translateY(12px);
+}
+
+body.is-playing .journey {
+  transform: none;
+}
+
+.journey__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.journey__meta strong {
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.journey__track {
+  position: relative;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.journey__track span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4%;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  transition: width 0.5s ease;
+}
+
+.journey__track i {
+  position: absolute;
+  top: 50%;
+  left: 4%;
+  color: white;
+  font-size: 7px;
+  font-style: normal;
+  text-shadow: 0 0 8px white;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: left 0.5s ease;
+}
+
+.guide {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transform: translate(-50%, 12px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+body.is-playing .guide {
+  transform: translate(-50%, 0);
+}
+
+.guide.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+  transform: translate(-50%, 8px) !important;
+}
+
+.guide__gesture {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 50%;
+}
+
+.guide__gesture span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 8px white;
+  animation: gesture 2.4s ease-in-out infinite;
+}
+
+.guide__gesture i {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 2px);
+  width: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), transparent);
+}
+
+.guide p {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 10px rgba(20, 48, 41, 0.5);
+}
+
+.guide p strong {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.idle-hint {
+  position: fixed;
+  z-index: 12;
+  top: 58%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 1s ease;
+}
+
+.idle-hint.is-visible {
+  opacity: 1;
+}
+
+.idle-hint span {
+  width: 1px;
+  height: 34px;
+  background: linear-gradient(transparent, white);
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.idle-hint p {
+  margin: 10px 0;
+  font-family: "Noto Serif SC", serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.letterbox {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  left: 0;
+  height: 0;
+  background: #07110f;
+  pointer-events: none;
+  transition: height 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.letterbox--top {
+  top: 0;
+}
+
+.letterbox--bottom {
+  bottom: 0;
+}
+
+body.is-cinematic .letterbox {
+  height: clamp(9px, 1.5vh, 16px);
+}
+
+.vignette {
+  position: fixed;
+  z-index: 8;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 46%, rgba(16, 35, 29, 0.18) 100%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.flash {
+  position: fixed;
+  z-index: 9;
+  inset: 0;
+  background: #dce9df;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flash.is-flashing {
+  animation: lightning 0.45s ease-out;
+}
+
+@keyframes intro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes gesture {
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  45% {
+    transform: translate(8px, -11px);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scaleY(0.8);
+    transform-origin: bottom;
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes lightning {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.18;
+  }
+  32% {
+    opacity: 0.04;
+  }
+  44% {
+    opacity: 0.12;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    padding: 20px;
+  }
+
+  .brand span:last-child,
+  .weather-button span:last-child,
+  .weather-card {
+    display: none;
+  }
+
+  .icon-button {
+    padding: 0 12px;
+  }
+
+  .journey {
+    right: 20px;
+    bottom: 22px;
+    width: 120px;
+  }
+
+  .guide {
+    bottom: 22px;
+    left: 20px;
+    transform: translate(0, 12px);
+  }
+
+  body.is-playing .guide {
+    transform: none;
+  }
+
+  .guide.is-hidden {
+    transform: translateY(8px) !important;
+  }
+
+  .guide p {
+    display: none;
+  }
+
+  .intro__content {
+    padding: 24px;
+  }
+
+  h1 {
+    letter-spacing: 0.1em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
