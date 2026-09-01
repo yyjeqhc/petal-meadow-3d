@@ -11,7 +11,7 @@ const WORLD_SIZE = 240;
 const WORLD_LIMIT = 108;
 const GRASS_COUNT = 22000;
 const PETAL_COUNT = 54;
-const MAX_FLOWERS = 1200;
+const MAX_FLOWERS = 1800;
 const RAIN_COUNT = 420;
 
 const clamp = THREE.MathUtils.clamp;
@@ -22,12 +22,21 @@ const smooth01 = (x) => {
   return x * x * (3 - 2 * x);
 };
 const angleDelta = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
+const radialField = (x, z, cx, cz, radius) => {
+  const dx = x - cx;
+  const dz = z - cz;
+  return smooth01(1 - (dx * dx + dz * dz) / (radius * radius));
+};
+const valleyField = (x, z) => radialField(x, z, -38, -24, 34);
+const meadowField = (x, z) => radialField(x, z, 22, -46, 31);
+const hillField = (x, z) => radialField(x, z, 53, -16, 27);
 
 function terrainHeight(x, z) {
   const broad = Math.sin(x * 0.035) * 2.8 + Math.cos(z * 0.041) * 2.35;
   const cross = Math.sin((x + z) * 0.067) * 1.25 + Math.cos((x - z) * 0.052) * 0.9;
   const basin = Math.cos(Math.hypot(x * 0.8, z) * 0.071) * 0.72;
-  return broad + cross + basin;
+  const shapedRegions = hillField(x, z) * 5.4 - valleyField(x, z) * 3.6 + meadowField(x, z) * 0.7;
+  return broad + cross + basin + shapedRegions;
 }
 
 const app = document.querySelector('#app');
@@ -209,6 +218,15 @@ function makeTerrain() {
         vec3 lush = mix(vec3(0.105, 0.28, 0.09), vec3(0.36, 0.56, 0.15), fine + broad + 0.28);
         vec3 dry = vec3(0.47, 0.48, 0.14);
         vec3 color = mix(lush, dry, uDryness * 0.28);
+        vec2 valleyD = (vWorldPos.xz - vec2(-38.0, -24.0)) / 34.0;
+        vec2 meadowD = (vWorldPos.xz - vec2(22.0, -46.0)) / 31.0;
+        vec2 hillD = (vWorldPos.xz - vec2(53.0, -16.0)) / 27.0;
+        float valley = 1.0 - smoothstep(0.0, 1.0, dot(valleyD, valleyD));
+        float meadow = 1.0 - smoothstep(0.0, 1.0, dot(meadowD, meadowD));
+        float hill = 1.0 - smoothstep(0.0, 1.0, dot(hillD, hillD));
+        color = mix(color, vec3(0.12, 0.34, 0.085), valley * 0.24);
+        color = mix(color, vec3(0.32, 0.52, 0.12), meadow * 0.27);
+        color = mix(color, vec3(0.40, 0.43, 0.12), hill * 0.16);
         float shadow = cloudShadow(vWorldPos.xz, uTime) * uCloudiness;
         color *= slopeLight * mix(1.02, 0.61, shadow);
         color += vec3(0.035, 0.052, 0.012) * smoothstep(2.0, 6.0, vWorldPos.y);
@@ -263,14 +281,27 @@ function makeGrass() {
   const tints = new Float32Array(GRASS_COUNT);
 
   for (let i = 0; i < GRASS_COUNT; i += 1) {
-    const x = (Math.random() - 0.5) * (WORLD_SIZE - 4);
-    const z = (Math.random() - 0.5) * (WORLD_SIZE - 4);
+    let x = 0;
+    let z = 0;
+    let valley = 0;
+    let meadow = 0;
+    let hill = 0;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      x = (Math.random() - 0.5) * (WORLD_SIZE - 4);
+      z = (Math.random() - 0.5) * (WORLD_SIZE - 4);
+      valley = valleyField(x, z);
+      meadow = meadowField(x, z);
+      hill = hillField(x, z);
+      const density = clamp(0.63 + valley * 0.17 + meadow * 0.31 - hill * 0.15, 0.34, 0.96);
+      if (Math.random() < density || attempt === 7) break;
+    }
+    const lushness = clamp(valley * 0.58 + meadow * 0.82, 0, 1);
     offsets[i * 3] = x;
     offsets[i * 3 + 1] = terrainHeight(x, z) + 0.025;
     offsets[i * 3 + 2] = z;
-    scales[i] = 0.62 + Math.random() * 1.16;
+    scales[i] = (0.62 + Math.random() * 1.16) * (0.92 + lushness * 0.18 - hill * 0.12);
     phases[i] = Math.random();
-    tints[i] = Math.random();
+    tints[i] = clamp(Math.random() * 0.72 + lushness * 0.28, 0, 1);
   }
 
   geometry.setAttribute('instanceOffset', new THREE.InstancedBufferAttribute(offsets, 3));
@@ -388,6 +419,9 @@ const petalStates = Array.from({ length: PETAL_COUNT }, (_, index) => ({
   trail: index === 0 ? 0 : Math.random() * 2.8,
   scale: index === 0 ? 1.35 : 0.56 + Math.random() * 0.74,
   spin: 0.65 + Math.random() * 1.8,
+  position: new THREE.Vector3(),
+  velocity: new THREE.Vector3(),
+  initialized: false,
 }));
 
 const petalPalette = [0xfff7e6, 0xffd8d0, 0xffe7b4, 0xf9f0ff, 0xffc6aa, 0xfff4cf];
@@ -477,10 +511,60 @@ function spawnFlower(x, z, grown = false, scaleMul = 1) {
   bloomMesh.instanceColor.needsUpdate = true;
 }
 
-for (let i = 0; i < 130; i += 1) {
+function seedFlowerField(cx, cz, radiusX, radiusZ, count, scaleMul = 1) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * TAU;
+    const radius = Math.sqrt(Math.random());
+    const x = clamp(cx + Math.cos(angle) * radiusX * radius, -WORLD_LIMIT, WORLD_LIMIT);
+    const z = clamp(cz + Math.sin(angle) * radiusZ * radius, -WORLD_LIMIT, WORLD_LIMIT);
+    spawnFlower(x, z, true, scaleMul * (0.82 + Math.random() * 0.34));
+  }
+}
+
+for (let i = 0; i < 90; i += 1) {
   const angle = Math.random() * TAU;
   const radius = 12 + Math.sqrt(Math.random()) * 94;
-  spawnFlower(Math.cos(angle) * radius, Math.sin(angle) * radius, true, 0.72);
+  spawnFlower(Math.cos(angle) * radius, Math.sin(angle) * radius, true, 0.68);
+}
+seedFlowerField(22, -46, 27, 19, 270, 0.82);
+seedFlowerField(53, -16, 14, 11, 90, 0.72);
+
+const bloomWaves = [];
+const MAX_BLOOM_WAVES = 18;
+
+function triggerBloomWake() {
+  bloomWaves.push({
+    x: leader.x,
+    z: leader.z,
+    headingX: heading.x,
+    headingZ: heading.z,
+    age: 0,
+    nextPulse: 0,
+    life: 0.72 + Math.random() * 0.12,
+    seed: Math.random() * TAU,
+  });
+  if (bloomWaves.length > MAX_BLOOM_WAVES) bloomWaves.shift();
+}
+
+function updateBloomWaves(dt) {
+  for (let waveIndex = bloomWaves.length - 1; waveIndex >= 0; waveIndex -= 1) {
+    const wave = bloomWaves[waveIndex];
+    wave.age += dt;
+    while (wave.nextPulse <= wave.age && wave.nextPulse <= wave.life) {
+      const progress = clamp(wave.nextPulse / wave.life, 0, 1);
+      const radius = 0.22 + progress * 2.65;
+      const count = 2 + Math.floor(progress * 3.2);
+      for (let i = 0; i < count; i += 1) {
+        const angle = wave.seed + (i / count) * TAU + Math.sin(progress * 9 + i) * 0.23;
+        const forwardBias = progress * 0.72;
+        const x = clamp(wave.x + Math.cos(angle) * radius + wave.headingX * forwardBias, -WORLD_LIMIT, WORLD_LIMIT);
+        const z = clamp(wave.z + Math.sin(angle) * radius + wave.headingZ * forwardBias, -WORLD_LIMIT, WORLD_LIMIT);
+        spawnFlower(x, z, false, 0.66 + Math.random() * 0.34 + progress * 0.12);
+      }
+      wave.nextPulse += 0.18;
+    }
+    if (wave.age > wave.life + 0.12) bloomWaves.splice(waveIndex, 1);
+  }
 }
 
 function updateFlowers(dt) {
@@ -723,6 +807,8 @@ const desiredCamera = new THREE.Vector3();
 const desiredLook = new THREE.Vector3();
 const tmpVec = new THREE.Vector3();
 const tmpLocal = new THREE.Vector3();
+const petalTarget = new THREE.Vector3();
+const petalAccel = new THREE.Vector3();
 const petalDummy = new THREE.Object3D();
 const clock = new THREE.Clock();
 
@@ -734,6 +820,7 @@ const input = {
   hasStarted: false,
   speed: 0,
   yaw: 0,
+  turnRate: 0,
   idleSeconds: 0,
   idleFocus: 0,
   trailDistance: 0,
@@ -781,17 +868,6 @@ window.addEventListener('blur', () => {
   input.pointerDown = false;
 });
 
-function createFlowerPatch() {
-  const count = 4 + Math.floor(Math.random() * 5);
-  for (let i = 0; i < count; i += 1) {
-    const angle = Math.random() * TAU;
-    const radius = 0.18 + Math.pow(Math.random(), 0.6) * 1.65;
-    const x = clamp(leader.x + Math.cos(angle) * radius, -WORLD_LIMIT, WORLD_LIMIT);
-    const z = clamp(leader.z + Math.sin(angle) * radius, -WORLD_LIMIT, WORLD_LIMIT);
-    spawnFlower(x, z, false, 0.82 + Math.random() * 0.36);
-  }
-}
-
 function updatePlayer(dt, elapsed) {
   const forwardHeld = input.keys.has('w') || input.keys.has('arrowup') || input.pointerDown;
   const braking = input.keys.has('s');
@@ -804,6 +880,7 @@ function updatePlayer(dt, elapsed) {
   if (input.keys.has('a') || input.keys.has('arrowleft')) turn -= 1;
   if (input.keys.has('d') || input.keys.has('arrowright')) turn += 1;
   if (forwardHeld) turn += input.pointerX * (input.pointerDown ? 0.95 : 0.38);
+  const yawBefore = input.yaw;
   input.yaw += turn * dt * (0.82 + input.speed * 0.028);
 
   const radial = Math.hypot(leader.x, leader.z);
@@ -812,6 +889,8 @@ function updatePlayer(dt, elapsed) {
     const edgeFactor = smooth01((radial - WORLD_LIMIT * 0.86) / (WORLD_LIMIT * 0.14));
     input.yaw += angleDelta(input.yaw, centerYaw) * edgeFactor * dt * 1.9;
   }
+  const instantaneousTurnRate = dt > 0 ? angleDelta(yawBefore, input.yaw) / dt : 0;
+  input.turnRate = damp(input.turnRate, instantaneousTurnRate, 7.5, dt);
 
   heading.set(Math.sin(input.yaw), 0, -Math.cos(input.yaw));
   right.set(-heading.z, 0, heading.x);
@@ -832,9 +911,9 @@ function updatePlayer(dt, elapsed) {
 
   const moved = previousLeader.distanceTo(leader);
   input.trailDistance += moved;
-  if (input.speed > 1.0 && input.trailDistance > 1.72) {
+  if (input.speed > 1.0 && input.trailDistance > 2.65) {
     input.trailDistance = 0;
-    createFlowerPatch();
+    triggerBloomWake();
   }
 
   if (input.hasStarted && input.speed < 0.32 && !forwardHeld) input.idleSeconds += dt;
@@ -843,22 +922,47 @@ function updatePlayer(dt, elapsed) {
   input.idleFocus = damp(input.idleFocus, focusTarget, focusTarget ? 1.35 : 4.6, dt);
 }
 
-function updatePetals(elapsed) {
-  const speedRatio = clamp(input.speed / 13, 0, 1.35);
+function updatePetals(dt, elapsed) {
+  const speedRatio = clamp(input.speed / 19.5, 0, 1);
+  const ribbon = smooth01(clamp(input.speed / 13.5, 0, 1));
+  const turn = clamp(input.turnRate / 1.2, -1, 1);
+  const turnAmount = Math.abs(turn);
   for (let i = 0; i < PETAL_COUNT; i += 1) {
     const state = petalStates[i];
     const phase = state.phase + elapsed * (0.76 + state.spin * 0.13);
     const swirl = Math.sin(phase * 0.73 + i) * 0.35;
-    petalDummy.position.copy(leader);
-    petalDummy.position.addScaledVector(right, Math.cos(phase) * state.radius);
-    petalDummy.position.addScaledVector(heading, -state.trail * speedRatio + Math.sin(phase * 1.37) * state.radius * 0.35);
-    petalDummy.position.y += state.lift + Math.sin(phase * 1.8) * (0.22 + state.radius * 0.12) + swirl;
+    const sideSpread = Math.cos(phase) * state.radius * lerp(1.08, 0.72, ribbon);
+    const turnFan = -turn * (0.16 + state.trail * 0.42) * (0.28 + ribbon * 0.72);
+    const tail = state.trail * (0.32 + ribbon * 2.18);
+
+    petalTarget.copy(leader);
+    petalTarget.addScaledVector(right, sideSpread + turnFan);
+    petalTarget.addScaledVector(heading, -tail + Math.sin(phase * 1.37) * state.radius * (0.24 + ribbon * 0.18));
+    petalTarget.y += state.lift + Math.sin(phase * 1.8) * (0.22 + state.radius * 0.12) + swirl + turnAmount * Math.sin(phase) * 0.22;
+
+    if (!state.initialized) {
+      state.position.copy(petalTarget);
+      state.velocity.set(0, 0, 0);
+      state.initialized = true;
+    }
+
+    const stiffness = i === 0 ? 92 : lerp(54, 31, ribbon);
+    const drag = i === 0 ? 14 : lerp(9.2, 5.3, ribbon);
+    petalAccel.copy(petalTarget).sub(state.position).multiplyScalar(stiffness);
+    state.velocity.addScaledVector(petalAccel, dt);
+    state.velocity.multiplyScalar(Math.exp(-drag * dt));
+    state.position.addScaledVector(state.velocity, dt);
+
+    petalDummy.position.copy(state.position);
+    const motionYaw = state.velocity.lengthSq() > 0.002
+      ? Math.atan2(state.velocity.x, -state.velocity.z)
+      : input.yaw;
     petalDummy.rotation.set(
-      phase * 1.3 + Math.sin(phase) * 0.5,
-      input.yaw + phase * 0.62,
-      phase * state.spin,
+      phase * 1.3 + Math.sin(phase) * 0.5 + turn * 0.22,
+      motionYaw + phase * 0.36,
+      phase * state.spin - turn * (0.38 + state.trail * 0.08),
     );
-    const pulse = state.scale * (0.92 + Math.sin(elapsed * 2.2 + state.phase) * 0.08);
+    const pulse = state.scale * (0.92 + Math.sin(elapsed * 2.2 + state.phase) * 0.08) * (1 + speedRatio * 0.05);
     petalDummy.scale.setScalar(pulse);
     petalDummy.updateMatrix();
     petalSwarm.setMatrixAt(i, petalDummy.matrix);
@@ -872,7 +976,8 @@ function updateCamera(dt) {
   const focus = input.idleFocus;
   const distance = lerp(10.8 + speedRatio * 1.7, 5.2, focus);
   const height = lerp(5.4 + speedRatio * 0.55, 3.25, focus);
-  desiredCamera.copy(leader).addScaledVector(heading, -distance).addScaledVector(right, input.pointerX * 0.28 * (1 - focus));
+  const cameraTurnDrift = -clamp(input.turnRate, -1.2, 1.2) * speedRatio * 0.52;
+  desiredCamera.copy(leader).addScaledVector(heading, -distance).addScaledVector(right, input.pointerX * 0.28 * (1 - focus) + cameraTurnDrift);
   desiredCamera.y += height;
   camera.position.lerp(desiredCamera, 1 - Math.exp(-dt * (focus > 0.5 ? 2.0 : 4.2)));
 
@@ -880,6 +985,7 @@ function updateCamera(dt) {
   desiredLook.y += lerp(0.55, 0.12, focus);
   lookTarget.lerp(desiredLook, 1 - Math.exp(-dt * 4.5));
   camera.lookAt(lookTarget);
+  camera.rotateZ(-clamp(input.turnRate, -1.2, 1.2) * speedRatio * 0.045 * (1 - focus));
   camera.fov = damp(camera.fov, lerp(48, 55, speedRatio) - focus * 3.5, 3.1, dt);
   camera.updateProjectionMatrix();
 }
@@ -1017,7 +1123,8 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.04);
   const elapsed = clock.elapsedTime;
   updatePlayer(dt, elapsed);
-  updatePetals(elapsed);
+  updateBloomWaves(dt);
+  updatePetals(dt, elapsed);
   updateFlowers(dt);
   updateCamera(dt);
   updateWeather(dt, elapsed);
@@ -1044,6 +1151,6 @@ window.addEventListener('resize', onResize);
 lookTarget.copy(leader).addScaledVector(heading, 3.5);
 camera.position.copy(leader).add(new THREE.Vector3(0, 5.4, 10.8));
 camera.lookAt(lookTarget);
-updatePetals(0);
+updatePetals(0, 0);
 updateFlowers(0);
 requestAnimationFrame(animate);
