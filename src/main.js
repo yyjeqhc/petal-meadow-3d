@@ -171,12 +171,15 @@ function makeTerrain() {
 
   const material = new THREE.ShaderMaterial({
     fog: true,
-    uniforms: {
-      uTime: { value: 0 },
-      uCloudiness: { value: 0.28 },
-      uSunDir: { value: sunDirection.clone() },
-      uDryness: { value: 0.16 },
-    },
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.fog,
+      {
+        uTime: { value: 0 },
+        uCloudiness: { value: 0.28 },
+        uSunDir: { value: sunDirection.clone() },
+        uDryness: { value: 0.16 },
+      },
+    ]),
     vertexShader: `
       #include <fog_pars_vertex>
       varying vec3 vWorldPos;
@@ -279,12 +282,15 @@ function makeGrass() {
   const material = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
     fog: true,
-    uniforms: {
-      uTime: { value: 0 },
-      uWindStrength: { value: 0.82 },
-      uWindDir: { value: new THREE.Vector2(0.84, 0.38).normalize() },
-      uCloudiness: { value: 0.28 },
-    },
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.fog,
+      {
+        uTime: { value: 0 },
+        uWindStrength: { value: 0.82 },
+        uWindDir: { value: new THREE.Vector2(0.84, 0.38).normalize() },
+        uCloudiness: { value: 0.28 },
+      },
+    ]),
     vertexShader: `
       #include <fog_pars_vertex>
       attribute vec3 instanceOffset;
