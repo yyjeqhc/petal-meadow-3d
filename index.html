@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#9bd4ee" />
+    <meta name="description" content="Windborne Meadow — a procedural cinematic meadow experience built with Three.js." />
+    <title>Windborne Meadow</title>
+  </head>
+  <body>
+    <main id="app" aria-label="Windborne Meadow 3D game">
+      <div id="hud">
+        <section class="brand-panel">
+          <p class="eyebrow">A PROCEDURAL WIND STUDY</p>
+          <h1>Windborne<br /><span>Meadow</span></h1>
+          <p class="subtitle">随风而行，让荒草沿途开花。</p>
+        </section>
+
+        <section class="weather-panel" aria-live="polite">
+          <div class="weather-dot"></div>
+          <div>
+            <p class="label">天空状态</p>
+            <p id="weather-label">晴空 · 柔风</p>
+          </div>
+        </section>
+
+        <section class="speed-panel">
+          <div class="speed-copy">
+            <span>风速</span>
+            <span id="speed-value">0.0</span>
+          </div>
+          <div class="speed-track"><i id="speed-fill"></i></div>
+        </section>
+
+        <section class="controls-panel">
+          <p><kbd>W</kbd> / 按住鼠标前行 · <kbd>A</kbd><kbd>D</kbd> 转向</p>
+          <p><kbd>Shift</kbd> 疾风 · <kbd>S</kbd> 制动 · 停下后镜头自动靠近</p>
+        </section>
+      </div>
+
+      <div id="focus-copy" aria-hidden="true">
+        <span>静下来</span>
+        <small>听见草与风</small>
+      </div>
+
+      <div id="start-hint">
+        <span class="mouse-glyph"></span>
+        <p>按住鼠标或按 <kbd>W</kbd>，让花瓣迎风而行</p>
+      </div>
+
+      <div class="vignette"></div>
+      <div class="grain"></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
